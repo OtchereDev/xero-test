@@ -2,6 +2,7 @@
 using System.Net;
 using System.Web.Http;
 using refactor_this.Models;
+using refactor_this.Services;
 
 namespace refactor_this.Controllers
 {
@@ -10,24 +11,25 @@ namespace refactor_this.Controllers
     {
         [Route]
         [HttpGet]
-        public Products GetAll()
+        public ProductServices GetAll()
         {
-            return new Products();
+            return new ProductServices();
         }
 
         [Route]
         [HttpGet]
-        public Products SearchByName(string name)
+        public ProductServices SearchByName(string name)
         {
-            return new Products(name);
+            return new ProductServices(name);
         }
 
         [Route("{id}")]
         [HttpGet]
         public Product GetProduct(Guid id)
         {
-            var product = new Product(id);
-            if (product.IsNew)
+            var repo = new ProductRepository();
+            var product = repo.GetById(id);
+            if (product == null)
                 throw new HttpResponseException(HttpStatusCode.NotFound);
 
             return product;
@@ -37,79 +39,37 @@ namespace refactor_this.Controllers
         [HttpPost]
         public void Create(Product product)
         {
-            product.Save();
+            var repo = new ProductRepository();
+            repo.Save(product);
         }
 
         [Route("{id}")]
         [HttpPut]
         public void Update(Guid id, Product product)
         {
-            var orig = new Product(id)
-            {
-                Name = product.Name,
-                Description = product.Description,
-                Price = product.Price,
-                DeliveryPrice = product.DeliveryPrice
-            };
+            var repo = new ProductRepository();
+            var orig = repo.GetById(id);
+    
 
-            if (!orig.IsNew)
-                orig.Save();
+            if (orig != null)
+            {
+                orig.Name = product.Name;
+                orig.Description = product.Description;
+                orig.Price = product.Price;
+                orig.DeliveryPrice = product.DeliveryPrice;
+                
+                repo.Save(orig);
+            }
+               
         }
 
         [Route("{id}")]
         [HttpDelete]
         public void Delete(Guid id)
         {
-            var product = new Product(id);
-            product.Delete();
-        }
-
-        [Route("{productId}/options")]
-        [HttpGet]
-        public ProductOptions GetOptions(Guid productId)
-        {
-            return new ProductOptions(productId);
-        }
-
-        [Route("{productId}/options/{id}")]
-        [HttpGet]
-        public ProductOption GetOption(Guid productId, Guid id)
-        {
-            var option = new ProductOption(id);
-            if (option.IsNew)
-                throw new HttpResponseException(HttpStatusCode.NotFound);
-
-            return option;
-        }
-
-        [Route("{productId}/options")]
-        [HttpPost]
-        public void CreateOption(Guid productId, ProductOption option)
-        {
-            option.ProductId = productId;
-            option.Save();
-        }
-
-        [Route("{productId}/options/{id}")]
-        [HttpPut]
-        public void UpdateOption(Guid id, ProductOption option)
-        {
-            var orig = new ProductOption(id)
-            {
-                Name = option.Name,
-                Description = option.Description
-            };
-
-            if (!orig.IsNew)
-                orig.Save();
-        }
-
-        [Route("{productId}/options/{id}")]
-        [HttpDelete]
-        public void DeleteOption(Guid id)
-        {
-            var opt = new ProductOption(id);
-            opt.Delete();
+            var repo = new ProductRepository();
+            var product = repo.GetById(id);
+            repo.Delete(product);
         }
     }
 }
