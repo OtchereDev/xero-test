@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Web.Http;
 using refactor_this.Models;
@@ -11,19 +12,20 @@ namespace refactor_this.Controllers
     {
         [Route("{productId}/options")]
         [HttpGet]
-        public ProductOptionsServices GetOptions(Guid productId)
+        public List<ProductOption> GetOptions(Guid productId)
         {
-            return new ProductOptionsServices(productId);
+            return new ProductOptionsServices().GetProductOptions(productId);
         }
 
         [Route("{productId}/options/{id}")]
         [HttpGet]
         public ProductOption GetOption(Guid productId, Guid id)
         {
-            var repo = new ProductOptionRepository();
+            var service = new ProductOptionsServices();
 
-            var option = repo.GetById(id);
-            if (option.IsNew)
+            var option = service.GetProductOptionById(id);
+            
+            if (option == null)
                 throw new HttpResponseException(HttpStatusCode.NotFound);
 
             return option;
@@ -35,12 +37,17 @@ namespace refactor_this.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-            
-            var repo = new ProductOptionRepository();
-            option.ProductId = productId;
-            repo.Save(option);
-            
-            return Json(new {message = "Option created successfully"});
+
+            try
+            {
+                var service = new ProductOptionsServices();
+                service.CreateProductOption(option, productId);
+                return Json(new {message = "Option created successfully"});
+            }
+            catch (Exception e)
+            {
+                return InternalServerError(e);
+            }
         }
 
         [Route("{productId}/options/{id}")]
@@ -50,32 +57,33 @@ namespace refactor_this.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
             
-            var repo = new ProductOptionRepository();
+            var service = new ProductOptionsServices();
 
-            var orig = repo.GetById(id);
-
-            if (orig == null)
-                return NotFound();
+            try
+            {
+                var result = service.UpdateProductOption(option, id);
+                
+                if (result == null)
+                    return NotFound();
+                
+                return Json(new {message = "Option updated successfully"});
+            }
+            catch (Exception e)
+            {
+                return InternalServerError(e);
+            }
             
-            orig.Name = option.Name;
-            orig.Description = option.Description;
-            repo.Save(orig);
-            
-            return Json(new {message = "Option updated successfully"});
         }
 
         [Route("{productId}/options/{id}")]
         [HttpDelete]
         public void DeleteOption(Guid id)
         {
-            var repo = new ProductOptionRepository();
-
-            var opt = repo.GetById(id);
+            var service = new ProductOptionsServices();
+            var result = service.DeleteProductOption(id);
             
-            if (opt == null)
+            if (result == null)
                 throw new HttpResponseException(HttpStatusCode.NotFound);
-            
-            repo.Delete(opt);
         }
     }
 }

@@ -1,6 +1,5 @@
 using System;
 using System.Data.SqlClient;
-using Newtonsoft.Json;
 using refactor_this.Services;
 
 namespace refactor_this.Models
@@ -21,7 +20,7 @@ namespace refactor_this.Models
         public void Delete(Product product)
         {
             var optionsRepo = new ProductOptionRepository();
-            foreach (var option in new ProductOptionsServices(product.Id).Items)
+            foreach (var option in new ProductOptionsServices().GetProductOptions(product.Id))
                 optionsRepo.Delete(option);
 
             var conn = Helpers.NewConnection();

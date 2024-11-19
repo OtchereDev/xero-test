@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Web.Http;
 using refactor_this.Models;
@@ -12,24 +13,29 @@ namespace refactor_this.Controllers
     {
         [Route]
         [HttpGet]
-        public ProductServices GetAll()
+        public List<Product> GetAll()
         {
-            return new ProductServices();
+            var service = new ProductServices();
+
+            return service.GetAllProducts();
         }
 
         [Route]
         [HttpGet]
-        public ProductServices SearchByName(string name)
+        public List<Product> SearchByName(string name)
         {
-            return new ProductServices(name);
+            var service = new ProductServices();
+
+            return service.GetAllProducts(name);
         }
 
         [Route("{id}")]
         [HttpGet]
         public Product GetProduct(Guid id)
         {
-            var repo = new ProductRepository();
-            var product = repo.GetById(id);
+            var service = new ProductServices();
+            var product = service.GetProduct(id);
+            
             if (product == null)
                 throw new HttpResponseException(HttpStatusCode.NotFound);
 
@@ -44,11 +50,18 @@ namespace refactor_this.Controllers
             {
                 return BadRequest(ModelState);
             }
+
+            try
+            {
+                var service = new ProductServices();
+                service.CreateProduct(product);
+                return Json(new { message = "Product successfully created"});
+            }
+            catch (Exception e)
+            {
+                return InternalServerError(e);
+            }
             
-            var repo = new ProductRepository();
-            repo.Save(product);
-            
-            return Json(new { message = "Product successfully created"});
         }
 
         [Route("{id}")]
@@ -57,33 +70,34 @@ namespace refactor_this.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-            
-            var repo = new ProductRepository();
-            var orig = repo.GetById(id);
 
-            if (orig == null)
-                return NotFound();
-            
-            orig.Name = product.Name;
-            orig.Description = product.Description;
-            orig.Price = product.Price;
-            orig.DeliveryPrice = product.DeliveryPrice;
-            
-            repo.Save(orig);
-            return Json(new { message = "Product successfully updated" });
+            try
+            {
+                var service = new ProductServices();
+                var result = service.UpdateProduct(product, id);
+                
+                if(result == null)
+                    return NotFound();
+                
+                return Json(new { message = "Product successfully updated" });
+                
+            }
+            catch (Exception e)
+            {
+                return InternalServerError(e);
+            }
+
         }
 
         [Route("{id}")]
         [HttpDelete]
         public void Delete(Guid id)
         {
-            var repo = new ProductRepository();
-            var product = repo.GetById(id);
+            var service = new ProductServices();
+            var result = service.DeleteProduct(id);
             
-            if (product == null)
+            if (result == null)
                 throw new HttpResponseException(HttpStatusCode.NotFound);
-            
-            repo.Delete(product);
         }
     }
 }
