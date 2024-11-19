@@ -31,27 +31,37 @@ namespace refactor_this.Controllers
 
         [Route("{productId}/options")]
         [HttpPost]
-        public void CreateOption(Guid productId, ProductOption option)
+        public IHttpActionResult CreateOption(Guid productId, ProductOption option)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            
             var repo = new ProductOptionRepository();
             option.ProductId = productId;
             repo.Save(option);
+            
+            return Json(new {message = "Option created successfully"});
         }
 
         [Route("{productId}/options/{id}")]
         [HttpPut]
-        public void UpdateOption(Guid id, ProductOption option)
+        public IHttpActionResult UpdateOption(Guid id, ProductOption option)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            
             var repo = new ProductOptionRepository();
 
             var orig = repo.GetById(id);
 
-            if (orig != null)
-            {
-                orig.Name = option.Name;
-                orig.Description = option.Description;
-                repo.Save(orig);
-            }
+            if (orig == null)
+                return NotFound();
+            
+            orig.Name = option.Name;
+            orig.Description = option.Description;
+            repo.Save(orig);
+            
+            return Json(new {message = "Option updated successfully"});
         }
 
         [Route("{productId}/options/{id}")]
@@ -61,6 +71,10 @@ namespace refactor_this.Controllers
             var repo = new ProductOptionRepository();
 
             var opt = repo.GetById(id);
+            
+            if (opt == null)
+                throw new HttpResponseException(HttpStatusCode.NotFound);
+            
             repo.Delete(opt);
         }
     }

@@ -12,7 +12,7 @@ POST http://localhost:58123/products
 Content-Type: application/json
 
 {
-  "Name": "Samsung Galaxy S10", 
+  "Name": "Iphone 16", 
   "Description": "Newest mobile product from Samsung.",
   "Price": 1024.99,
   "DeliveryPrice": 16.99

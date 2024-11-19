@@ -1,7 +1,7 @@
 using System;
-using System.Data.SqlClient;
 using Newtonsoft.Json;
-using refactor_this.Services;
+using System.ComponentModel.DataAnnotations;
+
 
 namespace refactor_this.Models
 {
@@ -9,12 +9,17 @@ namespace refactor_this.Models
     {
         public Guid Id { get; set; }
 
+        [Required(ErrorMessage = "Product name is required.")]
+        [StringLength(100, ErrorMessage = "Product name cannot be longer than 100 characters.")]
         public string Name { get; set; }
 
+        [Required(ErrorMessage = "Description is required.")]
         public string Description { get; set; }
 
+        [Range(0.01, double.MaxValue, ErrorMessage = "Price must be a positive value.")]
         public decimal Price { get; set; }
 
+        [Range(0.01, double.MaxValue, ErrorMessage = "Delivery price must be a positive value.")]
         public decimal DeliveryPrice { get; set; }
         
         [JsonIgnore]
@@ -25,27 +30,5 @@ namespace refactor_this.Models
             Id = Guid.NewGuid();
             IsNew = true;
         }
-
-        public Product(Guid id)
-        {
-            IsNew = true;
-            var conn = Helpers.NewConnection();
-            var cmd = new SqlCommand($"select * from product where id = '{id}'", conn);
-            conn.Open();
-
-            var rdr = cmd.ExecuteReader();
-            if (!rdr.Read())
-                return;
-
-            IsNew = false;
-            Id = Guid.Parse(rdr["Id"].ToString());
-            Name = rdr["Name"].ToString();
-            Description = (DBNull.Value == rdr["Description"]) ? null : rdr["Description"].ToString();
-            Price = decimal.Parse(rdr["Price"].ToString());
-            DeliveryPrice = decimal.Parse(rdr["DeliveryPrice"].ToString());
-        }
-
-
-        
     }
 }

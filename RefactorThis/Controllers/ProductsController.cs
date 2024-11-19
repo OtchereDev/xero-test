@@ -4,6 +4,7 @@ using System.Web.Http;
 using refactor_this.Models;
 using refactor_this.Services;
 
+
 namespace refactor_this.Controllers
 {
     [RoutePrefix("products")]
@@ -37,30 +38,39 @@ namespace refactor_this.Controllers
 
         [Route]
         [HttpPost]
-        public void Create(Product product)
+        public IHttpActionResult Create(Product product)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+            
             var repo = new ProductRepository();
             repo.Save(product);
+            
+            return Json(new { message = "Product successfully created"});
         }
 
         [Route("{id}")]
         [HttpPut]
-        public void Update(Guid id, Product product)
+        public IHttpActionResult Update(Guid id, Product product)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            
             var repo = new ProductRepository();
             var orig = repo.GetById(id);
-    
 
-            if (orig != null)
-            {
-                orig.Name = product.Name;
-                orig.Description = product.Description;
-                orig.Price = product.Price;
-                orig.DeliveryPrice = product.DeliveryPrice;
-                
-                repo.Save(orig);
-            }
-               
+            if (orig == null)
+                return NotFound();
+            
+            orig.Name = product.Name;
+            orig.Description = product.Description;
+            orig.Price = product.Price;
+            orig.DeliveryPrice = product.DeliveryPrice;
+            
+            repo.Save(orig);
+            return Json(new { message = "Product successfully updated" });
         }
 
         [Route("{id}")]
@@ -69,6 +79,10 @@ namespace refactor_this.Controllers
         {
             var repo = new ProductRepository();
             var product = repo.GetById(id);
+            
+            if (product == null)
+                throw new HttpResponseException(HttpStatusCode.NotFound);
+            
             repo.Delete(product);
         }
     }
