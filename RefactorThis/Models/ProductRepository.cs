@@ -20,7 +20,7 @@ namespace refactor_this.Models
         public void Delete(Product product)
         {
             var optionsRepo = new ProductOptionRepository();
-            foreach (var option in new ProductOptionsServices().GetProductOptions(product.Id))
+            foreach (var option in new ProductOptionsServices(optionsRepo).GetProductOptions(product.Id.ToString()))
                 optionsRepo.Delete(option);
 
             var conn = Helpers.NewConnection();

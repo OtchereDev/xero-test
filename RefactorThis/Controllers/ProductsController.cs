@@ -11,30 +11,33 @@ namespace refactor_this.Controllers
     [RoutePrefix("products")]
     public class ProductsController : ApiController
     {
+
+        private ProductServices _service;
+
+        public ProductsController(ProductServices service)
+        {
+            _service= service;
+        }
+        
         [Route]
         [HttpGet]
-        public List<Product> GetAll()
+        public IReadOnlyList<Product> GetAll()
         {
-            var service = new ProductServices();
-
-            return service.GetAllProducts();
+            return _service.GetAllProducts();
         }
 
         [Route]
         [HttpGet]
-        public List<Product> SearchByName(string name)
+        public IReadOnlyList<Product> SearchByName(string name)
         {
-            var service = new ProductServices();
-
-            return service.GetAllProducts(name);
+            return _service.GetAllProducts(name);
         }
 
         [Route("{id}")]
         [HttpGet]
         public Product GetProduct(Guid id)
         {
-            var service = new ProductServices();
-            var product = service.GetProduct(id);
+            var product = _service.GetProduct(id);
             
             if (product == null)
                 throw new HttpResponseException(HttpStatusCode.NotFound);
@@ -53,8 +56,7 @@ namespace refactor_this.Controllers
 
             try
             {
-                var service = new ProductServices();
-                service.CreateProduct(product);
+                _service.CreateProduct(product);
                 return Json(new { message = "Product successfully created"});
             }
             catch (Exception e)
@@ -73,8 +75,7 @@ namespace refactor_this.Controllers
 
             try
             {
-                var service = new ProductServices();
-                var result = service.UpdateProduct(product, id);
+                var result = _service.UpdateProduct(product, id);
                 
                 if(result == null)
                     return NotFound();
@@ -93,8 +94,7 @@ namespace refactor_this.Controllers
         [HttpDelete]
         public void Delete(Guid id)
         {
-            var service = new ProductServices();
-            var result = service.DeleteProduct(id);
+            var result = _service.DeleteProduct(id);
             
             if (result == null)
                 throw new HttpResponseException(HttpStatusCode.NotFound);

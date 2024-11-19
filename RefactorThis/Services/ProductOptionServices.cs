@@ -9,38 +9,52 @@ namespace refactor_this.Services
     {
         private readonly ProductOptionRepository _repository;
         
-        public ProductOptionsServices()
+        public ProductOptionsServices(ProductOptionRepository repository)
         {
-            _repository = new ProductOptionRepository();
+            _repository = repository;
         }
 
-
-        public List<ProductOption> GetProductOptions()
+        public IReadOnlyList<ProductOption> GetProductOptions(string productId = null)
         {
-            return LoadProductOptions(null);
+            return LoadProductOptions(productId);
         }
 
-        public List<ProductOption> GetProductOptions(Guid productId)
-        {
-            return LoadProductOptions($"where productid = '{productId}'");
-        }
-
-        private List<ProductOption> LoadProductOptions(string where)
+        private IReadOnlyList<ProductOption> LoadProductOptions(string productId)
         {
             var items = new List<ProductOption>();
             var conn = Helpers.NewConnection();
-            var cmd = new SqlCommand($"select id from productoption {where}", conn);
-            conn.Open();
 
-            var repo = new ProductOptionRepository();
-            var rdr = cmd.ExecuteReader();
-            while (rdr.Read())
-            {
-                var id = Guid.Parse(rdr["id"].ToString());
-                items.Add(repo.GetById(id));
-            }
+            // Build query with parameterized SQL
+            var query = "SELECT id FROM productoption";
             
-            return items;
+            if (productId != null)
+            {
+                query += " WHERE productid = @productId";
+            }
+
+            var cmd = new SqlCommand(query, conn);
+            if (productId != null)
+            {
+                cmd.Parameters.AddWithValue("@productId", productId);
+            }
+
+            conn.Open();
+            
+            try
+            {
+                var rdr = cmd.ExecuteReader();
+                while (rdr.Read())
+                {
+                    var id = Guid.Parse(rdr["id"].ToString());
+                    items.Add(_repository.GetById(id));
+                }
+            }
+            catch (SqlException ex)
+            {
+                throw new Exception("An error occurred while loading product options.", ex);
+            }
+    
+            return items.AsReadOnly();
         }
 
         public ProductOption CreateProductOption(ProductOption productOption, Guid productId)

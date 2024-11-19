@@ -5,51 +5,66 @@ using refactor_this.Models;
 
 namespace refactor_this.Services
 {
+    
     public class ProductServices
     {
-        public List<Product> Items { get; private set; }
+        private ProductRepository _repository;
 
-        public List<Product> GetAllProducts()
+        public ProductServices(ProductRepository repository)
         {
-            LoadProducts(null);
-            
-            return this.Items;
+            _repository = repository;
         }
 
-        public List<Product> GetAllProducts(string name)
+        public IReadOnlyList<Product> GetAllProducts(string name = null)
         {
-            LoadProducts($"where lower(name) like '%{name.ToLower()}%'");
-            return this.Items;
+            return LoadProducts(name);
         }
-
-        private void LoadProducts(string where)
+        
+        private IReadOnlyList<Product> LoadProducts(string name)
         {
-            Items = new List<Product>();
+            var items = new List<Product>();
             var conn = Helpers.NewConnection();
-            var cmd = new SqlCommand($"select id from product {where}", conn);
-            conn.Open();
 
-            var rdr = cmd.ExecuteReader();
-            var productRepo = new ProductRepository();
-
-            while (rdr.Read())
+            var query = "SELECT id FROM product";
+            if (!string.IsNullOrEmpty(name))
             {
-                var id = Guid.Parse(rdr["id"].ToString());
-                Items.Add(productRepo.GetById(id));
+                query += " WHERE lower(name) LIKE @name";
             }
+
+            var cmd = new SqlCommand(query, conn);
+
+            if (!string.IsNullOrEmpty(name))
+            {
+                cmd.Parameters.AddWithValue("@name", "%" + name.ToLower() + "%");
+            }
+
+            try
+            {
+                conn.Open();
+                var rdr = cmd.ExecuteReader();
+                while (rdr.Read())
+                {
+                    var id = Guid.Parse(rdr["id"].ToString());
+                    items.Add(_repository.GetById(id));
+                }
+            }
+            catch (SqlException ex)
+            {
+                throw new Exception("An error occurred while loading products.", ex);
+            }
+
+            return items.AsReadOnly();
         }
 
         public void CreateProduct(Product product)
         {
-            var repo = new ProductRepository();
-            repo.Save(product);
+            _repository.Save(product);
         }
 
         public Product UpdateProduct(Product product, Guid productId)
         {
-            var repo = new ProductRepository();
             
-            var orig = repo.GetById(productId);
+            var orig = _repository.GetById(productId);
 
             if (orig == null)
                 return null;
@@ -59,30 +74,26 @@ namespace refactor_this.Services
             orig.Price = product.Price;
             orig.DeliveryPrice = product.DeliveryPrice;
             
-            repo.Save(orig);
+            _repository.Save(orig);
             
             return orig;
         }
 
         public Product GetProduct(Guid productId)
         {
-            var repo = new ProductRepository();
-            
-            var product = repo.GetById(productId);
+            var product = _repository.GetById(productId);
             
             return product;
         }
 
         public Product DeleteProduct(Guid productId)
         {
-            var repo = new ProductRepository();
-            
             var product = this.GetProduct(productId);
             
             if (product == null)
                 return null;
             
-            repo.Delete(product);
+            _repository.Delete(product);
             
             return product;
         }
