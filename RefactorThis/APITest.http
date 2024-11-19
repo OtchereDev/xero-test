@@ -1,0 +1,56 @@
+### GET all products
+GET http://localhost:58123/products
+
+### Get products with seach
+GET http://localhost:58123/products?name=Samsu
+
+### Get product with ID
+GET http://localhost:58123/products/8f2e9176-35ee-4f0a-ae55-83023d2db1a3
+
+### Create product
+POST http://localhost:58123/products
+Content-Type: application/json
+
+{
+  "Name": "Samsung Galaxy S10", 
+  "Description": "Newest mobile product from Samsung.",
+  "Price": 1024.99,
+  "DeliveryPrice": 16.99
+}
+
+
+### Update product
+PUT http://localhost:58123/products/6f37acb3-4a4a-45db-b6c0-274766b9fc13
+Content-Type: application/json
+
+{
+  "Name": "Samsung Galaxy S10 updated",
+  "Description": "Newest mobile product from Samsung.",
+  "Price": 1024.99,
+  "DeliveryPrice": 16.99
+}
+
+
+### Get all options for a product
+GET http://localhost:58123/products/6f37acb3-4a4a-45db-b6c0-274766b9fc13/options
+
+### Get details of an option
+GET http://localhost:58123/products/de1287c0-4b15-4a7b-9d8a-dd21b3cafec3/options/5c2996ab-54ad-4999-92d2-89245682d534
+
+### Create an option for a product
+POST http://localhost:58123/products/6f37acb3-4a4a-45db-b6c0-274766b9fc13/options
+Content-Type: application/json
+
+{
+  "name": "Yellow Gold",
+  "description": "This is a test"
+}
+
+### Update product option
+PUT http://localhost:58123/products/6f37acb3-4a4a-45db-b6c0-274766b9fc13/options/15203036-c9a1-43e4-95ba-efbaa8781a07
+Content-Type: application/json
+
+{
+  "name": "Red Gold - updated",
+  "description": "This is a test"
+}
