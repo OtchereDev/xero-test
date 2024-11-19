@@ -1,7 +1,7 @@
 ### GET all products
 GET http://localhost:58123/products
 
-### Get products with seach
+### Get products with search
 GET http://localhost:58123/products?name=Samsu
 
 ### Get product with ID
@@ -12,7 +12,7 @@ POST http://localhost:58123/products
 Content-Type: application/json
 
 {
-  "Name": "Iphone 16", 
+  "Name": "Iphone 16 new", 
   "Description": "Newest mobile product from Samsung.",
   "Price": 1024.99,
   "DeliveryPrice": 16.99
