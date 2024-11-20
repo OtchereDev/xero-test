@@ -16,45 +16,7 @@ namespace refactor_this.Services
 
         public IReadOnlyList<ProductOption> GetProductOptions(string productId = null)
         {
-            return LoadProductOptions(productId);
-        }
-
-        private IReadOnlyList<ProductOption> LoadProductOptions(string productId)
-        {
-            var items = new List<ProductOption>();
-            var conn = Helpers.NewConnection();
-
-            // Build query with parameterized SQL
-            var query = "SELECT id FROM productoption";
-            
-            if (productId != null)
-            {
-                query += " WHERE productid = @productId";
-            }
-
-            var cmd = new SqlCommand(query, conn);
-            if (productId != null)
-            {
-                cmd.Parameters.AddWithValue("@productId", productId);
-            }
-
-            conn.Open();
-            
-            try
-            {
-                var rdr = cmd.ExecuteReader();
-                while (rdr.Read())
-                {
-                    var id = Guid.Parse(rdr["id"].ToString());
-                    items.Add(_repository.GetById(id));
-                }
-            }
-            catch (SqlException ex)
-            {
-                throw new Exception("An error occurred while loading product options.", ex);
-            }
-    
-            return items.AsReadOnly();
+            return _repository.GetAll(productId);
         }
 
         public ProductOption CreateProductOption(ProductOption productOption, Guid productId)
