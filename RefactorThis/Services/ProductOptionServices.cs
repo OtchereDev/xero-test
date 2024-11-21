@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
+using System.Threading.Tasks;
 using refactor_this.Models;
 
 namespace refactor_this.Services
@@ -14,50 +14,48 @@ namespace refactor_this.Services
             _repository = repository;
         }
 
-        public IReadOnlyList<ProductOption> GetProductOptions(string productId = null)
+        public async Task<IReadOnlyList<ProductOption>> GetProductOptionsAsync(string productId = null)
         {
-            return _repository.GetAll(productId);
+            return await _repository.GetAllAsync(productId);
         }
 
-        public ProductOption CreateProductOption(ProductOption productOption, Guid productId)
+        public async Task<ProductOption> CreateProductOptionAsync(ProductOption productOption, Guid productId)
         {
             productOption.ProductId = productId;
-            _repository.Save(productOption);
+            await _repository.SaveAsync(productOption);
             
             return productOption;
         }
 
-        public ProductOption UpdateProductOption(ProductOption productOption, Guid productId)
+        public async Task<ProductOption> UpdateProductOptionAsync(ProductOption productOption, Guid productId)
         {
-
-            var orig = _repository.GetById(productId);
+            var orig = await _repository.GetByIdAsync(productId);
 
             if (orig == null)
                 return null;
             
             orig.Name = productOption.Name;
             orig.Description = productOption.Description;
-            _repository.Save(orig);
+            await _repository.SaveAsync(orig);
             
             return orig;
         }
 
-        public ProductOption DeleteProductOption(Guid optionId)
+        public async Task<ProductOption> DeleteProductOptionAsync(Guid optionId)
         {
-            var opt = _repository.GetById(optionId);
+            var opt = await _repository.GetByIdAsync(optionId);
             
             if (opt == null)
                 return null;
             
-            _repository.Delete(opt);
+            await _repository.DeleteAsync(opt);
             
             return opt;
         }
 
-        public ProductOption GetProductOptionById(Guid productOptionId)
+        public async Task<ProductOption> GetProductOptionByIdAsync(Guid productOptionId)
         {
-            var option = _repository.GetById(productOptionId);
-            return option;
+            return await _repository.GetByIdAsync(productOptionId);
         }
     }
 }

@@ -1,91 +1,106 @@
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.Threading.Tasks;
 
 namespace refactor_this.Models
 {
     public class ProductOptionRepository
     {
-        private  readonly IDatabase _database;
+        private readonly IDatabase _database;
 
         public ProductOptionRepository(IDatabase database)
         {
             _database = database;
         }
-        
-        public void Save(ProductOption productOption)
+
+        public async Task SaveAsync(ProductOption productOption)
         {
             var conn = _database.GetConnection();
-            var cmd = productOption.IsNew ?
-                new SqlCommand($"insert into productoption (id, productid, name, description) values ('{productOption.Id}', '{productOption.ProductId}', '{productOption.Name}', '{productOption.Description}')", conn.SqlConnection) :
-                new SqlCommand($"update productoption set name = '{productOption.Name}', description = '{productOption.Description}' where id = '{productOption.Id}'", conn.SqlConnection);
+            await conn.Open();
 
-            conn.Open();
-            cmd.ExecuteNonQuery();
-        }
-        
-        public ProductOption GetById(Guid id)
-        {
-            var conn = _database.GetConnection();;
-            var cmd = new SqlCommand($"select * from productoption where id = '{id}'", conn.SqlConnection);
-            conn.Open();
+            var query = productOption.IsNew
+                ? "INSERT INTO productoption (id, productid, name, description) VALUES (@Id, @ProductId, @Name, @Description)"
+                : "UPDATE productoption SET name = @Name, description = @Description WHERE id = @Id";
 
-            var rdr = cmd.ExecuteReader();
-            if (!rdr.Read())
-                return null;
-
-            return new ProductOption
+            using (var cmd = new SqlCommand(query, conn.SqlConnection))
             {
-                Id = Guid.Parse(rdr["Id"].ToString()),
-                ProductId = Guid.Parse(rdr["ProductId"].ToString()),
-                Name = rdr["Name"].ToString(),
-                Description = rdr["Description"] == DBNull.Value ? null : rdr["Description"].ToString()
-            };
-        }
-        
-        public void Delete(ProductOption productOption)
-        {
-            var conn = _database.GetConnection();;
-            var cmd = new SqlCommand($"delete from productoption where id = '{productOption.Id}'", conn.SqlConnection);
-            conn.Open();
-            cmd.ExecuteNonQuery();
+                cmd.Parameters.AddWithValue("@Id", productOption.Id);
+                cmd.Parameters.AddWithValue("@ProductId", productOption.ProductId);
+                cmd.Parameters.AddWithValue("@Name", productOption.Name);
+                cmd.Parameters.AddWithValue("@Description", productOption.Description ?? (object)DBNull.Value);
+
+                await cmd.ExecuteNonQueryAsync();
+            }
         }
 
-        public IReadOnlyList<ProductOption> GetAll(string productId)
+        public async Task<ProductOption> GetByIdAsync(Guid id)
+        {
+            var conn = _database.GetConnection();
+            await conn.Open();
+
+            using (var cmd = conn.CreateCommand())
+            {
+                cmd.CommandText = "SELECT * FROM productoption WHERE id = @Id";
+                cmd.Parameters.Add(new SqlParameter("@Id", id));
+
+                using (var rdr =  cmd.ExecuteReader())
+                {
+                    if (! rdr.Read())
+                        return null;
+
+                    return new ProductOption
+                    {
+                        Id = Guid.Parse(rdr["Id"].ToString()),
+                        ProductId = Guid.Parse(rdr["ProductId"].ToString()),
+                        Name = rdr["Name"].ToString(),
+                        Description = rdr["Description"] == DBNull.Value ? null : rdr["Description"].ToString()
+                    };
+                }
+            }
+        }
+
+        public async Task DeleteAsync(ProductOption productOption)
+        {
+            var conn = _database.GetConnection();
+            await conn.Open();
+
+            using (var cmd = new SqlCommand("DELETE FROM productoption WHERE id = @Id", conn.SqlConnection))
+            {
+                cmd.Parameters.AddWithValue("@Id", productOption.Id);
+                await cmd.ExecuteNonQueryAsync();
+            }
+        }
+
+        public async Task<IReadOnlyList<ProductOption>> GetAllAsync(string productId)
         {
             var items = new List<ProductOption>();
             var conn = _database.GetConnection();
+            await conn.Open();
 
-            // Build query with parameterized SQL
             var query = "SELECT id FROM productoption";
-            
-            if (productId != null)
+            if (!string.IsNullOrEmpty(productId))
             {
-                query += " WHERE productid = @productId";
+                query += " WHERE productid = @ProductId";
             }
 
-            var cmd = new SqlCommand(query, conn.SqlConnection);
-            if (productId != null)
+            using (var cmd = new SqlCommand(query, conn.SqlConnection))
             {
-                cmd.Parameters.AddWithValue("@productId", productId);
-            }
-
-            conn.Open();
-            
-            try
-            {
-                var rdr = cmd.ExecuteReader();
-                while (rdr.Read())
+                if (!string.IsNullOrEmpty(productId))
                 {
-                    var id = Guid.Parse(rdr["id"].ToString());
-                    items.Add(GetById(id));
+                    cmd.Parameters.AddWithValue("@ProductId", productId);
+                }
+
+                using (var rdr = await cmd.ExecuteReaderAsync())
+                {
+                    while (await rdr.ReadAsync())
+                    {
+                        var id = Guid.Parse(rdr["id"].ToString());
+                        items.Add(await GetByIdAsync(id)); // Async call to fetch full details.
+                    }
                 }
             }
-            catch (SqlException ex)
-            {
-                throw new Exception("An error occurred while loading product options.", ex);
-            }
-    
+
             return items.AsReadOnly();
         }
     }

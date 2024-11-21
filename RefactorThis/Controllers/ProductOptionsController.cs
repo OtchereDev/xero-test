@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Threading.Tasks;
 using System.Web.Http;
 using refactor_this.Models;
 using refactor_this.Services;
@@ -8,7 +9,7 @@ using refactor_this.Services;
 namespace refactor_this.Controllers
 {
     [RoutePrefix("products")]
-    public class ProductOptionsController: ApiController
+    public class ProductOptionsController : ApiController
     {
         private readonly ProductOptionsServices _service;
         
@@ -19,72 +20,92 @@ namespace refactor_this.Controllers
 
         [Route("{productId}/options")]
         [HttpGet]
-        public IReadOnlyList<ProductOption> GetOptions(Guid productId)
+        public async Task<IHttpActionResult> GetOptions(Guid productId)
         {
-            return _service.GetProductOptions(productId.ToString());
+            try
+            {
+                var options = await _service.GetProductOptionsAsync(productId.ToString());
+                return Ok(options);
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
         }
 
         [Route("{productId}/options/{id}")]
         [HttpGet]
-        public ProductOption GetOption(Guid productId, Guid id)
+        public async Task<IHttpActionResult> GetOption(Guid productId, Guid id)
         {
-            var option = _service.GetProductOptionById(id);
-            
-            if (option == null)
-                throw new HttpResponseException(HttpStatusCode.NotFound);
+            try
+            {
+                var option = await _service.GetProductOptionByIdAsync(id);
+                if (option == null)
+                    return NotFound();
 
-            return option;
+                return Ok(option);
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
         }
 
         [Route("{productId}/options")]
         [HttpPost]
-        public IHttpActionResult CreateOption(Guid productId, ProductOption option)
+        public async Task<IHttpActionResult> CreateOption(Guid productId, ProductOption option)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
-                _service.CreateProductOption(option, productId);
-                return Json(new {message = "Option created successfully"});
+                var createdOption = await _service.CreateProductOptionAsync(option, productId);
+                return Created($"{Request.RequestUri}/{createdOption.Id}", new { message = "Option created successfully" });
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                return InternalServerError(e);
+                return InternalServerError(ex);
             }
         }
 
         [Route("{productId}/options/{id}")]
         [HttpPut]
-        public IHttpActionResult UpdateOption(Guid id, ProductOption option)
+        public async Task<IHttpActionResult> UpdateOption(Guid id, ProductOption option)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-            
+
             try
             {
-                var result = _service.UpdateProductOption(option, id);
-                
-                if (result == null)
+                var updatedOption = await _service.UpdateProductOptionAsync(option, id);
+                if (updatedOption == null)
                     return NotFound();
-                
-                return Json(new {message = "Option updated successfully"});
+
+                return Ok(new { message = "Option updated successfully" });
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                return InternalServerError(e);
+                return InternalServerError(ex);
             }
-            
         }
 
         [Route("{productId}/options/{id}")]
         [HttpDelete]
-        public void DeleteOption(Guid id)
+        public async Task<IHttpActionResult> DeleteOption(Guid id)
         {
-            var result = _service.DeleteProductOption(id);
-            
-            if (result == null)
-                throw new HttpResponseException(HttpStatusCode.NotFound);
+            try
+            {
+                var deletedOption = await _service.DeleteProductOptionAsync(id);
+                if (deletedOption == null)
+                    return NotFound();
+
+                return Ok(new { message = "Option deleted successfully" });
+            }
+            catch (Exception ex)
+            {
+                return InternalServerError(ex);
+            }
         }
     }
 }
