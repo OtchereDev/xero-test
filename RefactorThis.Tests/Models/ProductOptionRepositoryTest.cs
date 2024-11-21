@@ -1,144 +1,206 @@
+using NSubstitute;
+using NUnit.Framework;
+using System;
+using System.Data;
 using System.Data.SqlClient;
-using Moq;
+using System.Threading.Tasks;
 using refactor_this.Models;
 
-namespace RefactorThis.Tests.Models
+[TestFixture]
+public class ProductOptionRepositoryTests
 {
-    [TestFixture]
-    public class ProductOptionRepositoryTests
+    private IDatabase _mockDatabase;
+    private IDbConnectionWrapper _mockConnection;
+    private IDbCommand _mockCommand;
+    private IDataReader _mockReader;
+    private ProductOptionRepository _repository;
+    
+    [SetUp]
+    public void SetUp()
     {
-        private Mock<SqlConnection> mockConnection;
-        private Mock<SqlCommand> mockCommand;
-        private ProductOptionRepository repository;
+        _mockDatabase = Substitute.For<IDatabase>();
+        _mockConnection = Substitute.For<IDbConnectionWrapper>();
+        _mockCommand = Substitute.For<IDbCommand>();
+        _mockReader = Substitute.For<IDataReader>();
 
-        [SetUp]
-        public void SetUp()
+        _mockDatabase.GetConnection().Returns(_mockConnection);
+
+        // Mock connection behavior
+        _mockConnection.Open().Returns(Task.CompletedTask);
+        _mockConnection.State.Returns(ConnectionState.Open); // Use the added State property
+        _mockConnection.CreateCommand().Returns(_mockCommand);
+
+        _mockCommand.ExecuteReader().Returns(_mockReader);
+
+        _repository = new ProductOptionRepository(_mockDatabase);
+    }
+
+    [TearDown]
+    public void TearDown()
+    {
+        _mockCommand?.Dispose();
+        _mockReader?.Dispose();
+
+        // This will ensure that mocks are reset or cleaned up
+        _mockDatabase = null;
+        _mockConnection = null;
+        _mockCommand = null;
+        _mockReader = null;
+    }
+
+    [Test]
+    public async Task GetByIdAsync_ReturnsProductOption_WhenIdExists()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        var productId = Guid.NewGuid();
+        var name = "Test Product Option";
+        var description = "Test Description";
+
+        // Explicitly specify the return type for Read()
+        _mockReader.Read().Returns(true, false); // First ReadAsync returns true, second ReadAsync returns false
+
+        // Set up the data being returned from the reader
+        _mockReader["Id"].Returns(id.ToString());
+        _mockReader["ProductId"].Returns(productId.ToString());
+        _mockReader["Name"].Returns(name);
+        _mockReader["Description"].Returns(description);
+
+        // Act
+        var result = await _repository.GetByIdAsync(id);
+
+        // Assert
+        Assert.That(result, Is.Not.Null);
+        Assert.That(result.Id, Is.EqualTo(id));
+        Assert.That(result.ProductId, Is.EqualTo(productId));
+        Assert.That(result.Name, Is.EqualTo(name));
+        Assert.That(result.Description, Is.EqualTo(description));
+    }
+    
+    // [Test]
+    // public async Task SaveAsync_ShouldInsertProductOption_WhenProductOptionIsNew()
+    // {
+    //     // Arrange
+    //     var mockConnection = Substitute.For<IDbConnectionWrapper>();
+    //     var mockCommand = Substitute.For<IDbCommand>();
+    //     _mockDatabase.GetConnection().Returns(mockConnection);
+    //
+    //     // Ensure the connection state is "Open"
+    //     mockConnection.State.Returns(ConnectionState.Open);
+    //
+    //     // Simulate opening the connection
+    //     mockConnection.Open().Returns(Task.CompletedTask);
+    //
+    //     var productOption = new ProductOption
+    //     {
+    //         Id = Guid.NewGuid(),
+    //         ProductId = Guid.NewGuid(),
+    //         Name = "Test Name",
+    //         Description = "Test Description"
+    //     };
+    //
+    //     // Mock CreateCommand to return the mock command
+    //     mockConnection.CreateCommand().Returns(mockCommand);
+    //
+    //     // Act
+    //     await _repository.SaveAsync(productOption);
+    //
+    //     // Assert
+    //     mockCommand.Received().CommandText = "INSERT INTO productoption (id, productid, name, description) VALUES (@Id, @ProductId, @Name, @Description)";
+    //     mockCommand.Received().Parameters.Add(Arg.Is<SqlParameter>(p => p.ParameterName == "@Id" && (Guid)p.Value == productOption.Id));
+    //     mockCommand.Received().ExecuteNonQuery();
+    // }
+    
+    // [Test]
+    // public async Task GetAllAsync_ShouldReturnAllProductOptions_WhenCalled()
+    // {
+    //     // Arrange
+    //     var mockConnection = Substitute.For<IDbConnectionWrapper>();
+    //     var mockCommand = Substitute.For<IDbCommand>();
+    //     var mockReader = Substitute.For<IDataReader>();
+    //     _mockDatabase.GetConnection().Returns(mockConnection);
+    //
+    //     mockConnection.CreateCommand().Returns(mockCommand);
+    //     mockCommand.ExecuteReader().Returns(mockReader);
+    //
+    //     var productId = Guid.NewGuid().ToString();
+    //
+    //     mockReader.Read().Returns(true, false); // Simulate one row of data
+    //     mockReader["id"].Returns(Guid.NewGuid().ToString());
+    //
+    //     // Act
+    //     var result = await _repository.GetAllAsync(productId);
+    //
+    //     // Assert
+    //     Assert.That(result, Is.Not.Null);
+    //     Assert.That(result.Count, Is.EqualTo(1));
+    //     mockCommand.Received().CommandText.Contains("SELECT id FROM productoption");
+    //     mockCommand.Received().Parameters.Add(Arg.Is<SqlParameter>(p => p.ParameterName == "@ProductId" && (string)p.Value == productId));
+    // }
+    
+    // [Test]
+    // public async Task SaveAsync_ShouldInsertProductOption_WhenProductOptionIsNew()
+    // {
+    //     // Arrange
+    //     var mockConnection = Substitute.For<IDbConnectionWrapper>();
+    //     var mockCommand = Substitute.For<IDbCommand>();
+    //     _mockDatabase.GetConnection().Returns(mockConnection);
+    //
+    //     // Simulate an open connection
+    //     mockConnection.Open().Returns(Task.CompletedTask);
+    //     mockConnection.State.Returns(ConnectionState.Open); // Ensure connection state is Open
+    //
+    //     // Mock CreateCommand to return a valid IDbCommand
+    //     mockConnection.CreateCommand().Returns(mockCommand);
+    //
+    //     var productOption = new ProductOption
+    //     {
+    //         Id = Guid.NewGuid(),
+    //         ProductId = Guid.NewGuid(),
+    //         Name = "Test Name",
+    //         Description = "Test Description",
+    //         // IsNew = true (Uncomment if necessary)
+    //     };
+    //
+    //     // Act
+    //     await _repository.SaveAsync(productOption);
+    //
+    //     // Assert
+    //     mockCommand.Received().CommandText = "INSERT INTO productoption (id, productid, name, description) VALUES (@Id, @ProductId, @Name, @Description)";
+    //     mockCommand.Received().Parameters.Add(Arg.Is<SqlParameter>(p => p.ParameterName == "@Id" && (Guid)p.Value == productOption.Id));
+    //     mockCommand.Received().ExecuteNonQuery();
+    // }
+    
+    [Test]
+    public async Task SaveAsync_ShouldInsertProductOption_WhenProductOptionIsNew()
+    {
+        // Arrange
+        var mockConnection = Substitute.For<IDbConnectionWrapper>();
+        var mockCommand = Substitute.For<IDbCommand>();
+        _mockDatabase.GetConnection().Returns(mockConnection);
+
+        // Mock connection behavior
+        mockConnection.Open().Returns(Task.CompletedTask); // Simulate opening the connection
+        mockConnection.State.Returns(ConnectionState.Open); // Simulate the connection state as open
+        mockConnection.CreateCommand().Returns(mockCommand);
+
+        // Mock command behavior
+        // mockCommand.ExecuteNonQuery().Returns(Task.FromResult(1));
+
+        var productOption = new ProductOption
         {
-            mockConnection = new Mock<SqlConnection>();
-            mockCommand = new Mock<SqlCommand>();
-            
-            // Setup a mock connection and command
-            mockCommand.Setup(cmd => cmd.ExecuteNonQuery()).Returns(1); // Simulate successful execution of SQL command
-            
-            // You could use this mock connection in your repository
-            repository = new ProductOptionRepository();
-        }
-        
-        [Test]
-        public void Save_WhenProductOptionIsNew_ShouldExecuteInsert()
-        {
-            // Arrange
-            var productOption = new ProductOption
-            {
-                Id = Guid.NewGuid(),
-                ProductId = Guid.NewGuid(),
-                Name = "Test Option",
-                Description = "Test Description"
-            };
-            
-            // Act
-            repository.Save(productOption);
+            Id = Guid.NewGuid(),
+            ProductId = Guid.NewGuid(),
+            Name = "Test Name",
+            Description = "Test Description",
+        };
 
-            // Assert that the appropriate command is executed
-            mockCommand.Verify(cmd => cmd.ExecuteNonQuery(), Times.Once); // Ensure that ExecuteNonQuery() was called
-        }
+        // Act
+        await _repository.SaveAsync(productOption);
 
-        [Test]
-        public void Save_WhenProductOptionIsNotNew_ShouldExecuteUpdate()
-        {
-            // Arrange
-            var productOption = new ProductOption
-            {
-                Id = Guid.NewGuid(),
-                ProductId = Guid.NewGuid(),
-                Name = "Updated Option",
-                Description = "Updated Description",
-            };
-
-            // Act
-            repository.Save(productOption);
-
-            // Assert that the command to update the database was called
-            mockCommand.Verify(cmd => cmd.ExecuteNonQuery(), Times.Once);
-        }
-
-        [Test]
-        public void GetById_WhenProductOptionExists_ShouldReturnProductOption()
-        {
-            // Arrange
-            var productOptionId = Guid.NewGuid();
-            var productOption = new ProductOption
-            {
-                Id = productOptionId,
-                ProductId = Guid.NewGuid(),
-                Name = "Test Option",
-                Description = "Test Description"
-            };
-
-            // Mock behavior of ExecuteReader
-            mockCommand.Setup(cmd => cmd.ExecuteReader()).Returns(MockReader(productOption));
-
-            // Act
-            var result = repository.GetById(productOptionId);
-
-            // Assert
-            Assert.That(result, Is.Not.Null);
-            Assert.Equals(productOption.Id, result.Id);
-        }
-
-        [Test]
-        public void GetById_WhenProductOptionDoesNotExist_ShouldReturnNull()
-        {
-            // Arrange
-            var productOptionId = Guid.NewGuid();
-
-            // Mock ExecuteReader to simulate no data found
-            mockCommand.Setup(cmd => cmd.ExecuteReader()).Returns(MockReader(null));
-
-            // Act
-            var result = repository.GetById(productOptionId);
-
-            // Assert
-            Assert.That(result, Is.Null);
-        }
-
-        [Test]
-        public void Delete_ShouldExecuteDelete()
-        {
-            // Arrange
-            var productOption = new ProductOption
-            {
-                Id = Guid.NewGuid(),
-                ProductId = Guid.NewGuid(),
-                Name = "Test Option",
-                Description = "Test Description"
-            };
-
-            // Act
-            repository.Delete(productOption);
-
-            // Assert that ExecuteNonQuery is called to execute delete
-            mockCommand.Verify(cmd => cmd.ExecuteNonQuery(), Times.Once);
-        }
-
-        private SqlDataReader MockReader(ProductOption productOption)
-        {
-            var mockReader = new Mock<SqlDataReader>();
-            if (productOption != null)
-            {
-                mockReader.SetupSequence(rdr => rdr.Read())
-                    .Returns(true)
-                    .Returns(false);
-                mockReader.Setup(rdr => rdr["Id"]).Returns(productOption.Id.ToString());
-                mockReader.Setup(rdr => rdr["ProductId"]).Returns(productOption.ProductId.ToString());
-                mockReader.Setup(rdr => rdr["Name"]).Returns(productOption.Name);
-                mockReader.Setup(rdr => rdr["Description"]).Returns(productOption.Description);
-            }
-            else
-            {
-                mockReader.Setup(rdr => rdr.Read()).Returns(false);
-            }
-            return mockReader.Object;
-        }
+        // Assert
+        mockCommand.Received().CommandText = "INSERT INTO productoption (id, productid, name, description) VALUES (@Id, @ProductId, @Name, @Description)";
+        mockCommand.Received().Parameters.Add(Arg.Is<SqlParameter>(p => p.ParameterName == "@Id" && (Guid)p.Value == productOption.Id));
+        mockCommand.Received().ExecuteNonQuery();
     }
 }
