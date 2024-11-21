@@ -40,6 +40,7 @@ public class ProductOptionRepositoryTests
     {
         _mockCommand?.Dispose();
         _mockReader?.Dispose();
+        _mockConnection?.Dispose();
 
         // This will ensure that mocks are reset or cleaned up
         _mockDatabase = null;

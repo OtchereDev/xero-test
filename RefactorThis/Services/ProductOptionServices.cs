@@ -5,11 +5,11 @@ using refactor_this.Models;
 
 namespace refactor_this.Services
 {
-    public class ProductOptionsServices
+    public class ProductOptionsServices: IProductOptionsServices
     {
-        private readonly ProductOptionRepository _repository;
+        private readonly IProductOptionRepository _repository;
         
-        public ProductOptionsServices(ProductOptionRepository repository)
+        public ProductOptionsServices(IProductOptionRepository repository)
         {
             _repository = repository;
         }
@@ -36,7 +36,7 @@ namespace refactor_this.Services
             
             orig.Name = productOption.Name;
             orig.Description = productOption.Description;
-            await _repository.SaveAsync(orig);
+            await _repository.UpdateAsync(orig);
             
             return orig;
         }

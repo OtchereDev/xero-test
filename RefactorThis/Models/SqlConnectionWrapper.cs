@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace refactor_this.Models
 {
-    public class SqlConnectionWrapper : IDbConnectionWrapper, IDisposable
+    public class SqlConnectionWrapper : IDbConnectionWrapper
     {
         private readonly SqlConnection _connection;
 

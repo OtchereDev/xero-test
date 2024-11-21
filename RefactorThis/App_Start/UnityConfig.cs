@@ -41,10 +41,10 @@ namespace refactor_this
             // Make sure to add a Unity.Configuration to the using statements.
             // container.LoadConfiguration();
 
-            container.RegisterType<ProductServices, ProductServices>();
-            container.RegisterType<ProductOptionsServices, ProductOptionsServices>();
-            container.RegisterType<ProductRepository, ProductRepository>();
-            container.RegisterType<ProductOptionRepository, ProductOptionRepository>();
+            container.RegisterType<IProductServices, ProductServices>();
+            container.RegisterType<IProductOptionsServices, ProductOptionsServices>();
+            container.RegisterType<IProductRepository, ProductRepository>();
+            container.RegisterType<IProductOptionRepository, ProductOptionRepository>();
             container.RegisterType<IDatabase, Database>();
         }
     }

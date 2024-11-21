@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Net;
 using System.Threading.Tasks;
 using System.Web.Http;
 using refactor_this.Models;
@@ -11,9 +9,9 @@ namespace refactor_this.Controllers
     [RoutePrefix("products")]
     public class ProductOptionsController : ApiController
     {
-        private readonly ProductOptionsServices _service;
+        private readonly IProductOptionsServices _service;
         
-        public ProductOptionsController(ProductOptionsServices productOptionsService)
+        public ProductOptionsController(IProductOptionsServices productOptionsService)
         {
             _service = productOptionsService;
         }
@@ -33,7 +31,7 @@ namespace refactor_this.Controllers
             }
         }
 
-        [Route("{productId}/options/{id}")]
+        [Route("{productId}/options/{id:guid}")]
         [HttpGet]
         public async Task<IHttpActionResult> GetOption(Guid productId, Guid id)
         {
@@ -69,7 +67,7 @@ namespace refactor_this.Controllers
             }
         }
 
-        [Route("{productId}/options/{id}")]
+        [Route("{productId}/options/{id:guid}")]
         [HttpPut]
         public async Task<IHttpActionResult> UpdateOption(Guid id, ProductOption option)
         {
@@ -90,7 +88,7 @@ namespace refactor_this.Controllers
             }
         }
 
-        [Route("{productId}/options/{id}")]
+        [Route("{productId}/options/{id:guid}")]
         [HttpDelete]
         public async Task<IHttpActionResult> DeleteOption(Guid id)
         {

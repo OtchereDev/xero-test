@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
-using refactor_this.Services;
+using System.Data;
+using System.Threading.Tasks;
 
 namespace refactor_this.Models
 {
-    public class ProductRepository
+    public class ProductRepository: IProductRepository
     {
         private readonly IDatabase _database;
 
@@ -13,85 +13,124 @@ namespace refactor_this.Models
         {
             _database = database;
         }
-        
-        public void Save(Product product)
+
+        public async Task SaveAsync(Product product)
         {
-            var conn = _database.GetConnection();
-            var cmd = product.IsNew ? 
-                new SqlCommand($"insert into product (id, name, description, price, deliveryprice) values ('{product.Id}', '{product.Name}', '{product.Description}', {product.Price}, {product.DeliveryPrice})", conn.SqlConnection) : 
-                new SqlCommand($"update product set name = '{product.Name}', description = '{product.Description}', price = {product.Price}, deliveryprice = {product.DeliveryPrice} where id = '{product.Id}'", conn.SqlConnection);
-
-            conn.Open();
-            cmd.ExecuteNonQuery();
-        }
-
-        public void Delete(Product product)
-        {
-            //TODO: fix this
-            // var optionsRepo = new ProductOptionRepository(_database);
-            // foreach (var option in new ProductOptionsServices(optionsRepo).GetProductOptions(product.Id.ToString()))
-            //     optionsRepo.Delete(option);
-
-            var conn = _database.GetConnection();
-            conn.Open();
-            var cmd = new SqlCommand($"delete from product where id = '{product.Id}'", conn.SqlConnection);
-            cmd.ExecuteNonQuery();
-        }
-
-        public Product GetById(Guid id)
-        {
-            var conn = _database.GetConnection();
-            var cmd = new SqlCommand($"select * from product where id = '{id}'", conn.SqlConnection);
-            conn.Open();
-
-            var rdr = cmd.ExecuteReader();
-            if (!rdr.Read())
-                return null;
-
-            return new Product
+            using (var conn = _database.GetConnection())
             {
-                Id = Guid.Parse(rdr["Id"].ToString()),
-                Name = rdr["Name"].ToString(),
-                Description = rdr["Description"] == DBNull.Value ? null : rdr["Description"].ToString(),
-                Price = decimal.Parse(rdr["Price"].ToString()),
-                DeliveryPrice = decimal.Parse(rdr["DeliveryPrice"].ToString())
-            };
-        }
-
-        public IReadOnlyList<Product> GetAll(string name)
-        {
-            var items = new List<Product>();
-            var conn = _database.GetConnection();
-
-            var query = "SELECT id FROM product";
-            if (!string.IsNullOrEmpty(name))
-            {
-                query += " WHERE lower(name) LIKE @name";
-            }
-
-            var cmd = new SqlCommand(query, conn.SqlConnection);
-
-            if (!string.IsNullOrEmpty(name))
-            {
-                cmd.Parameters.AddWithValue("@name", "%" + name.ToLower() + "%");
-            }
-
-            try
-            {
-                conn.Open();
-                var rdr = cmd.ExecuteReader();
-                while (rdr.Read())
+                using (var cmd = conn.SqlConnection.CreateCommand())
                 {
-                    var id = Guid.Parse(rdr["id"].ToString());
-                    items.Add(GetById(id));
+                    cmd.CommandText =
+                        "INSERT INTO product (id, name, description, price, deliveryprice) VALUES (@Id, @Name, @Description, @Price, @DeliveryPrice)";
+                    cmd.Parameters.AddWithValue("@Id", product.Id);
+                    cmd.Parameters.AddWithValue("@Name", product.Name);
+                    cmd.Parameters.AddWithValue("@Description", (object)product.Description ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Price", product.Price);
+                    cmd.Parameters.AddWithValue("@DeliveryPrice", product.DeliveryPrice);
+
+                    await conn.Open();
+                    await cmd.ExecuteNonQueryAsync();
                 }
             }
-            catch (SqlException ex)
+        }
+        
+        public async Task UpdateAsync(Product product)
+        {
+            using (var conn = _database.GetConnection())
             {
-                throw new Exception("An error occurred while loading products.", ex);
+                using (var cmd = conn.SqlConnection.CreateCommand())
+                {
+                    cmd.CommandText = "UPDATE product SET name = @Name, description = @Description, price = @Price, deliveryprice = @DeliveryPrice WHERE id = @Id";
+
+                    cmd.Parameters.AddWithValue("@Id", product.Id);
+                    cmd.Parameters.AddWithValue("@Name", product.Name);
+                    cmd.Parameters.AddWithValue("@Description", (object)product.Description ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@Price", product.Price);
+                    cmd.Parameters.AddWithValue("@DeliveryPrice", product.DeliveryPrice);
+
+                    await conn.Open();
+                    await cmd.ExecuteNonQueryAsync();
+                }
+            }
+        }
+
+        public async Task DeleteAsync(Product product)
+        {
+            var optionsRepo = new ProductOptionRepository(_database);
+            await optionsRepo.DeleteByProductIdAsync(product.Id);
+            
+            using (var conn = _database.GetConnection())
+            {
+                using (var cmd = conn.SqlConnection.CreateCommand())
+                {
+                    cmd.CommandText = "DELETE FROM product WHERE id = @Id";
+                    cmd.Parameters.AddWithValue("@Id", product.Id);
+
+                    await conn.Open();
+                    await cmd.ExecuteNonQueryAsync();
+                }
+            }
+        }
+
+        public async Task<Product> GetByIdAsync(Guid id)
+        {
+            using (var conn = _database.GetConnection())
+            {
+                using (var cmd = conn.SqlConnection.CreateCommand())
+                {
+                    cmd.CommandText = "SELECT * FROM product WHERE id = @Id";
+                    cmd.Parameters.AddWithValue("@Id", id);
+
+                    await conn.Open();
+                    using (var rdr = await cmd.ExecuteReaderAsync())
+                    {
+                        if (!await rdr.ReadAsync())
+                            return null;
+
+                        return MapProduct(rdr);
+                    }
+                }
+            }
+        }
+
+        public async Task<IReadOnlyList<Product>> GetAllAsync(string name)
+        {
+            var products = new List<Product>();
+            using (var conn = _database.GetConnection())
+            {
+                using (var cmd = conn.SqlConnection.CreateCommand())
+                {
+                    cmd.CommandText = "SELECT * FROM product";
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        cmd.CommandText += " WHERE LOWER(name) LIKE @Name";
+                        cmd.Parameters.AddWithValue("@Name", $"%{name.ToLower()}%");
+                    }
+
+                    await conn.Open();
+                    using (var rdr = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await rdr.ReadAsync())
+                        {
+                            products.Add(MapProduct(rdr));
+                        }
+                    }
+                }
             }
 
-            return items.AsReadOnly();
+            return products.AsReadOnly();
+        }
+
+        private Product MapProduct(IDataRecord record)
+        {
+            return new Product
+            {
+                Id = Guid.Parse(record["Id"].ToString()),
+                Name = record["Name"].ToString(),
+                Description = record["Description"] == DBNull.Value ? null : record["Description"].ToString(),
+                Price = decimal.Parse(record["Price"].ToString()),
+                DeliveryPrice = decimal.Parse(record["DeliveryPrice"].ToString())
+            };
         }
     }
 }

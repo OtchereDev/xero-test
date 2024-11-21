@@ -1,103 +1,118 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Net;
+using System.Threading.Tasks;
 using System.Web.Http;
 using refactor_this.Models;
 using refactor_this.Services;
-
 
 namespace refactor_this.Controllers
 {
     [RoutePrefix("products")]
     public class ProductsController : ApiController
     {
+        private readonly IProductServices _service;
 
-        private ProductServices _service;
-
-        public ProductsController(ProductServices service)
+        public ProductsController(IProductServices service)
         {
-            _service= service;
-        }
-        
-        [Route]
-        [HttpGet]
-        public IReadOnlyList<Product> GetAll()
-        {
-            return _service.GetAllProducts();
+            _service = service;
         }
 
         [Route]
         [HttpGet]
-        public IReadOnlyList<Product> SearchByName(string name)
+        public async Task<IHttpActionResult> GetAllAsync(string name = null)
         {
-            return _service.GetAllProducts(name);
+            try
+            {
+                var products = await _service.GetAllProductsAsync(name);
+                return Ok(products);
+            }
+            catch (Exception e)
+            {
+                return InternalServerError(e);
+            }
         }
 
-        [Route("{id}")]
+        [Route("{id:guid}")]
         [HttpGet]
-        public Product GetProduct(Guid id)
+        public async Task<IHttpActionResult> GetProductAsync(Guid id)
         {
-            var product = _service.GetProduct(id);
-            
-            if (product == null)
-                throw new HttpResponseException(HttpStatusCode.NotFound);
+            try
+            {
+                var product = await _service.GetProductAsync(id);
 
-            return product;
+                if (product == null)
+                    return NotFound();
+
+                return Ok(product);
+            }
+            catch (Exception e)
+            {
+                return InternalServerError(e);
+            }
         }
 
         [Route]
         [HttpPost]
-        public IHttpActionResult Create(Product product)
+        public async Task<IHttpActionResult> CreateAsync([FromBody] Product product)
         {
+            if (product == null)
+                return BadRequest("Product cannot be null.");
+
             if (!ModelState.IsValid)
-            {
                 return BadRequest(ModelState);
-            }
 
             try
             {
-                _service.CreateProduct(product);
-                return Json(new { message = "Product successfully created"});
+                await _service.CreateProductAsync(product);
+                return Created(Request.RequestUri, new { message = "Product successfully created" });
             }
             catch (Exception e)
             {
                 return InternalServerError(e);
             }
-            
         }
 
-        [Route("{id}")]
+        [Route("{id:guid}")]
         [HttpPut]
-        public IHttpActionResult Update(Guid id, Product product)
+        public async Task<IHttpActionResult> Update(Guid id, [FromBody] Product product)
         {
+            if (product == null)
+                return BadRequest("Product cannot be null.");
+
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
-                var result = _service.UpdateProduct(product, id);
-                
-                if(result == null)
+                var updatedProduct = await _service.UpdateProductAsync(product, id);
+
+                if (updatedProduct == null)
                     return NotFound();
-                
-                return Json(new { message = "Product successfully updated" });
-                
+
+                return Ok(new { message = "Product successfully updated" });
             }
             catch (Exception e)
             {
                 return InternalServerError(e);
             }
-
         }
 
-        [Route("{id}")]
+        [Route("{id:guid}")]
         [HttpDelete]
-        public void Delete(Guid id)
+        public async Task<IHttpActionResult> Delete(Guid id)
         {
-            var result = _service.DeleteProduct(id);
-            
-            if (result == null)
-                throw new HttpResponseException(HttpStatusCode.NotFound);
+            try
+            {
+                var deleted = await _service.DeleteProductAsync(id);
+
+                if (deleted == null)
+                    return NotFound();
+
+                return Ok(new { message = "Product successfully deleted" });
+            }
+            catch (Exception e)
+            {
+                return InternalServerError(e);
+            }
         }
     }
 }

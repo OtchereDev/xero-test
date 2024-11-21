@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace refactor_this.Models
 {
-    public class ProductOptionRepository
+    public class ProductOptionRepository: IProductOptionRepository
     {
         private readonly IDatabase _database;
 
@@ -19,9 +19,26 @@ namespace refactor_this.Models
             var conn = _database.GetConnection();
             await conn.Open();
 
-            var query = productOption.IsNew
-                ? "INSERT INTO productoption (id, productid, name, description) VALUES (@Id, @ProductId, @Name, @Description)"
-                : "UPDATE productoption SET name = @Name, description = @Description WHERE id = @Id";
+            var query =
+                "INSERT INTO productoption (id, productid, name, description) VALUES (@Id, @ProductId, @Name, @Description)";
+
+            using (var cmd = new SqlCommand(query, conn.SqlConnection))
+            {
+                cmd.Parameters.AddWithValue("@Id", productOption.Id);
+                cmd.Parameters.AddWithValue("@ProductId", productOption.ProductId);
+                cmd.Parameters.AddWithValue("@Name", productOption.Name);
+                cmd.Parameters.AddWithValue("@Description", productOption.Description ?? (object)DBNull.Value);
+
+                await cmd.ExecuteNonQueryAsync();
+            }
+        }
+        
+        public async Task UpdateAsync(ProductOption productOption)
+        {
+            var conn = _database.GetConnection();
+            await conn.Open();
+
+            var query = "UPDATE productoption SET name = @Name, description = @Description WHERE id = @Id";
 
             using (var cmd = new SqlCommand(query, conn.SqlConnection))
             {
@@ -68,6 +85,18 @@ namespace refactor_this.Models
             using (var cmd = new SqlCommand("DELETE FROM productoption WHERE id = @Id", conn.SqlConnection))
             {
                 cmd.Parameters.AddWithValue("@Id", productOption.Id);
+                await cmd.ExecuteNonQueryAsync();
+            }
+        }
+
+        public async Task DeleteByProductIdAsync(Guid productId)
+        {
+            var conn = _database.GetConnection();
+            await conn.Open();
+
+            using (var cmd = new SqlCommand("DELETE FROM productoption WHERE productid = @Id", conn.SqlConnection))
+            {
+                cmd.Parameters.AddWithValue("@Id", productId);
                 await cmd.ExecuteNonQueryAsync();
             }
         }

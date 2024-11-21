@@ -1,10 +1,11 @@
+using System;
 using System.Data;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
 
 namespace refactor_this.Models
 {
-    public interface IDbConnectionWrapper
+    public interface IDbConnectionWrapper : IDisposable
     {
         IDbCommand CreateCommand();
         Task Open();

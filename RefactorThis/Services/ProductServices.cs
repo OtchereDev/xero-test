@@ -1,34 +1,35 @@
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
+using System.Threading.Tasks;
 using refactor_this.Models;
 
 namespace refactor_this.Services
 {
     
-    public class ProductServices
+    public class ProductServices : IProductServices
     {
-        private ProductRepository _repository;
+        private readonly IProductRepository _repository;
 
-        public ProductServices(ProductRepository repository)
+        public ProductServices(IProductRepository repository)
         {
             _repository = repository;
         }
 
-        public IReadOnlyList<Product> GetAllProducts(string name = null)
+        public async Task<IReadOnlyList<Product>> GetAllProductsAsync(string name = null)
         {
-            return _repository.GetAll(name);
+            return await _repository.GetAllAsync(name);
         }
         
-        public void CreateProduct(Product product)
+        public async Task<Product> CreateProductAsync(Product product)
         {
-            _repository.Save(product);
+             await _repository.SaveAsync(product);
+             return product;
         }
 
-        public Product UpdateProduct(Product product, Guid productId)
+        public async Task<Product> UpdateProductAsync(Product product, Guid productId)
         {
             
-            var orig = _repository.GetById(productId);
+            var orig = await _repository.GetByIdAsync(productId);
 
             if (orig == null)
                 return null;
@@ -38,26 +39,26 @@ namespace refactor_this.Services
             orig.Price = product.Price;
             orig.DeliveryPrice = product.DeliveryPrice;
             
-            _repository.Save(orig);
+            await _repository.UpdateAsync(orig);
             
             return orig;
         }
 
-        public Product GetProduct(Guid productId)
+        public async Task<Product> GetProductAsync(Guid productId)
         {
-            var product = _repository.GetById(productId);
+            var product = await _repository.GetByIdAsync(productId);
             
             return product;
         }
 
-        public Product DeleteProduct(Guid productId)
+        public async Task<Product> DeleteProductAsync(Guid productId)
         {
-            var product = this.GetProduct(productId);
+            var product = await GetProductAsync(productId);
             
             if (product == null)
                 return null;
             
-            _repository.Delete(product);
+            await _repository.DeleteAsync(product);
             
             return product;
         }

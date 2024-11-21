@@ -2,7 +2,6 @@ using System.Linq;
 using System.Web.Http;
 using refactor_this;
 using WebActivatorEx;
-// using ;
 using Swashbuckle.Application;
 
 [assembly: PreApplicationStartMethod(typeof(SwaggerConfig), "Register")]
@@ -13,8 +12,6 @@ namespace refactor_this
     {
         public static void Register()
         {
-            var thisAssembly = typeof(SwaggerConfig).Assembly;
-
             GlobalConfiguration.Configuration
                 .EnableSwagger(c =>
                     {

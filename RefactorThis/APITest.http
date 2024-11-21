@@ -12,7 +12,7 @@ POST http://localhost:58123/products
 Content-Type: application/json
 
 {
-  "Name": "Iphone 16 new", 
+  "Name": "Iphone 16 new fly", 
   "Description": "Newest mobile product from Samsung.",
   "Price": 1024.99,
   "DeliveryPrice": 16.99
@@ -20,7 +20,7 @@ Content-Type: application/json
 
 
 ### Update product
-PUT http://localhost:58123/products/6f37acb3-4a4a-45db-b6c0-274766b9fc13
+PUT http://localhost:58123/products/6028c1fa-37cc-4a6c-8a6a-50ae50e13c98
 Content-Type: application/json
 
 {
@@ -30,9 +30,12 @@ Content-Type: application/json
   "DeliveryPrice": 16.99
 }
 
+### Delete product
+DELETE http://localhost:58123/products/6028c1fa-37cc-4a6c-8a6a-50ae50e13c98
+
 
 ### Get all options for a product
-GET http://localhost:58123/products/6f37acb3-4a4a-45db-b6c0-274766b9fc13/options
+GET http://localhost:58123/products/de1287c0-4b15-4a7b-9d8a-dd21b3cafec3/options
 
 ### Get details of an option
 GET http://localhost:58123/products/de1287c0-4b15-4a7b-9d8a-dd21b3cafec3/options/5c2996ab-54ad-4999-92d2-89245682d534
@@ -54,3 +57,6 @@ Content-Type: application/json
   "name": "Red Gold - updated",
   "description": "This is a test"
 }
+
+### Delete product option
+DELETE http://localhost:58123/products/de1287c0-4b15-4a7b-9d8a-dd21b3cafec3/options/5c2996ab-54ad-4999-92d2-89245682d534
