@@ -45,6 +45,7 @@ namespace refactor_this
             container.RegisterType<ProductOptionsServices, ProductOptionsServices>();
             container.RegisterType<ProductRepository, ProductRepository>();
             container.RegisterType<ProductOptionRepository, ProductOptionRepository>();
+            container.RegisterType<IDatabase, Database>();
         }
     }
 }

@@ -7,10 +7,10 @@ namespace refactor_this.Models
     {
         private const string ConnectionString = @"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename={DataDirectory}\Database.mdf;Integrated Security=True";
 
-        public SqlConnection GetConnection()
+        public IDbConnectionWrapper GetConnection()
         {
             var connstr = ConnectionString.Replace("{DataDirectory}", HttpContext.Current.Server.MapPath("~/App_Data"));
-            return new SqlConnection(connstr);
+            return new SqlConnectionWrapper(connstr);
         }
     }
 }

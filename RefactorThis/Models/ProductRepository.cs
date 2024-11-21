@@ -18,8 +18,8 @@ namespace refactor_this.Models
         {
             var conn = _database.GetConnection();
             var cmd = product.IsNew ? 
-                new SqlCommand($"insert into product (id, name, description, price, deliveryprice) values ('{product.Id}', '{product.Name}', '{product.Description}', {product.Price}, {product.DeliveryPrice})", conn) : 
-                new SqlCommand($"update product set name = '{product.Name}', description = '{product.Description}', price = {product.Price}, deliveryprice = {product.DeliveryPrice} where id = '{product.Id}'", conn);
+                new SqlCommand($"insert into product (id, name, description, price, deliveryprice) values ('{product.Id}', '{product.Name}', '{product.Description}', {product.Price}, {product.DeliveryPrice})", conn.SqlConnection) : 
+                new SqlCommand($"update product set name = '{product.Name}', description = '{product.Description}', price = {product.Price}, deliveryprice = {product.DeliveryPrice} where id = '{product.Id}'", conn.SqlConnection);
 
             conn.Open();
             cmd.ExecuteNonQuery();
@@ -33,14 +33,14 @@ namespace refactor_this.Models
 
             var conn = _database.GetConnection();
             conn.Open();
-            var cmd = new SqlCommand($"delete from product where id = '{product.Id}'", conn);
+            var cmd = new SqlCommand($"delete from product where id = '{product.Id}'", conn.SqlConnection);
             cmd.ExecuteNonQuery();
         }
 
         public Product GetById(Guid id)
         {
             var conn = _database.GetConnection();
-            var cmd = new SqlCommand($"select * from product where id = '{id}'", conn);
+            var cmd = new SqlCommand($"select * from product where id = '{id}'", conn.SqlConnection);
             conn.Open();
 
             var rdr = cmd.ExecuteReader();
@@ -68,7 +68,7 @@ namespace refactor_this.Models
                 query += " WHERE lower(name) LIKE @name";
             }
 
-            var cmd = new SqlCommand(query, conn);
+            var cmd = new SqlCommand(query, conn.SqlConnection);
 
             if (!string.IsNullOrEmpty(name))
             {

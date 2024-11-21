@@ -17,8 +17,8 @@ namespace refactor_this.Models
         {
             var conn = _database.GetConnection();
             var cmd = productOption.IsNew ?
-                new SqlCommand($"insert into productoption (id, productid, name, description) values ('{productOption.Id}', '{productOption.ProductId}', '{productOption.Name}', '{productOption.Description}')", conn) :
-                new SqlCommand($"update productoption set name = '{productOption.Name}', description = '{productOption.Description}' where id = '{productOption.Id}'", conn);
+                new SqlCommand($"insert into productoption (id, productid, name, description) values ('{productOption.Id}', '{productOption.ProductId}', '{productOption.Name}', '{productOption.Description}')", conn.SqlConnection) :
+                new SqlCommand($"update productoption set name = '{productOption.Name}', description = '{productOption.Description}' where id = '{productOption.Id}'", conn.SqlConnection);
 
             conn.Open();
             cmd.ExecuteNonQuery();
@@ -27,7 +27,7 @@ namespace refactor_this.Models
         public ProductOption GetById(Guid id)
         {
             var conn = _database.GetConnection();;
-            var cmd = new SqlCommand($"select * from productoption where id = '{id}'", conn);
+            var cmd = new SqlCommand($"select * from productoption where id = '{id}'", conn.SqlConnection);
             conn.Open();
 
             var rdr = cmd.ExecuteReader();
@@ -46,7 +46,7 @@ namespace refactor_this.Models
         public void Delete(ProductOption productOption)
         {
             var conn = _database.GetConnection();;
-            var cmd = new SqlCommand($"delete from productoption where id = '{productOption.Id}'", conn);
+            var cmd = new SqlCommand($"delete from productoption where id = '{productOption.Id}'", conn.SqlConnection);
             conn.Open();
             cmd.ExecuteNonQuery();
         }
@@ -64,7 +64,7 @@ namespace refactor_this.Models
                 query += " WHERE productid = @productId";
             }
 
-            var cmd = new SqlCommand(query, conn);
+            var cmd = new SqlCommand(query, conn.SqlConnection);
             if (productId != null)
             {
                 cmd.Parameters.AddWithValue("@productId", productId);
