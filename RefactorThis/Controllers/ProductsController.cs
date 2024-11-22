@@ -23,7 +23,7 @@ namespace refactor_this.Controllers
             try
             {
                 var products = await _service.GetAllProductsAsync(name);
-                return Ok(products);
+                return Ok(new {Items= products});
             }
             catch (Exception e)
             {

@@ -23,7 +23,7 @@ namespace refactor_this.Controllers
             try
             {
                 var options = await _service.GetProductOptionsAsync(productId.ToString());
-                return Ok(options);
+                return Ok(new { Items= options});
             }
             catch (Exception ex)
             {
