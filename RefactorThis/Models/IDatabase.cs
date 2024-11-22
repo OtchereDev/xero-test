@@ -1,7 +1,9 @@
+using System.Data.SqlClient;
+
 namespace refactor_this.Models
 {
     public interface IDatabase
     {
-        IDbConnectionWrapper GetConnection();
+        SqlConnection GetConnection();
     }
 }

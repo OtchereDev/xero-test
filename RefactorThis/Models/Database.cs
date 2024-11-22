@@ -1,4 +1,5 @@
-﻿using System.Web;
+﻿using System.Data.SqlClient;
+using System.Web;
 
 namespace refactor_this.Models
 {
@@ -6,10 +7,10 @@ namespace refactor_this.Models
     {
         private const string ConnectionString = @"Data Source=(LocalDB)\MSSQLLocalDB;AttachDbFilename={DataDirectory}\Database.mdf;Integrated Security=True";
 
-        public IDbConnectionWrapper GetConnection()
+        public SqlConnection GetConnection()
         {
             var connstr = ConnectionString.Replace("{DataDirectory}", HttpContext.Current.Server.MapPath("~/App_Data"));
-            return new SqlConnectionWrapper(connstr);
+            return new SqlConnection(connstr);
         }
     }
 }

@@ -149,14 +149,12 @@
     </Compile>
     <Compile Include="Models\Database.cs" />
     <Compile Include="Models\IDatabase.cs" />
-    <Compile Include="Models\IDbConnectionWrapper.cs" />
     <Compile Include="Models\IProductOptionRepository.cs" />
     <Compile Include="Models\IProductRepository.cs" />
     <Compile Include="Models\Product.cs" />
     <Compile Include="Models\ProductOption.cs" />
     <Compile Include="Models\ProductOptionRepository.cs" />
     <Compile Include="Models\ProductRepository.cs" />
-    <Compile Include="Models\SqlConnectionWrapper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Services\IProductOptionsServices.cs" />
     <Compile Include="Services\IProductServices.cs" />

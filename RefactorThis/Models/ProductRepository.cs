@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.SqlClient;
 using System.Threading.Tasks;
 
 namespace refactor_this.Models
 {
-    public class ProductRepository: IProductRepository
+    public class ProductRepository : IProductRepository
     {
         private readonly IDatabase _database;
 
@@ -18,37 +19,35 @@ namespace refactor_this.Models
         {
             using (var conn = _database.GetConnection())
             {
-                using (var cmd = conn.SqlConnection.CreateCommand())
+                using (var cmd = new SqlCommand(
+                           "INSERT INTO product (id, name, description, price, deliveryprice) VALUES (@Id, @Name, @Description, @Price, @DeliveryPrice)", conn))
                 {
-                    cmd.CommandText =
-                        "INSERT INTO product (id, name, description, price, deliveryprice) VALUES (@Id, @Name, @Description, @Price, @DeliveryPrice)";
                     cmd.Parameters.AddWithValue("@Id", product.Id);
                     cmd.Parameters.AddWithValue("@Name", product.Name);
                     cmd.Parameters.AddWithValue("@Description", (object)product.Description ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@Price", product.Price);
                     cmd.Parameters.AddWithValue("@DeliveryPrice", product.DeliveryPrice);
 
-                    await conn.Open();
+                    await conn.OpenAsync();
                     await cmd.ExecuteNonQueryAsync();
                 }
             }
         }
-        
+
         public async Task UpdateAsync(Product product)
         {
             using (var conn = _database.GetConnection())
             {
-                using (var cmd = conn.SqlConnection.CreateCommand())
+                using (var cmd = new SqlCommand(
+                           "UPDATE product SET name = @Name, description = @Description, price = @Price, deliveryprice = @DeliveryPrice WHERE id = @Id", conn))
                 {
-                    cmd.CommandText = "UPDATE product SET name = @Name, description = @Description, price = @Price, deliveryprice = @DeliveryPrice WHERE id = @Id";
-
                     cmd.Parameters.AddWithValue("@Id", product.Id);
                     cmd.Parameters.AddWithValue("@Name", product.Name);
                     cmd.Parameters.AddWithValue("@Description", (object)product.Description ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@Price", product.Price);
                     cmd.Parameters.AddWithValue("@DeliveryPrice", product.DeliveryPrice);
 
-                    await conn.Open();
+                    await conn.OpenAsync();
                     await cmd.ExecuteNonQueryAsync();
                 }
             }
@@ -58,15 +57,14 @@ namespace refactor_this.Models
         {
             var optionsRepo = new ProductOptionRepository(_database);
             await optionsRepo.DeleteByProductIdAsync(product.Id);
-            
+
             using (var conn = _database.GetConnection())
             {
-                using (var cmd = conn.SqlConnection.CreateCommand())
+                using (var cmd = new SqlCommand("DELETE FROM product WHERE id = @Id", conn))
                 {
-                    cmd.CommandText = "DELETE FROM product WHERE id = @Id";
                     cmd.Parameters.AddWithValue("@Id", product.Id);
 
-                    await conn.Open();
+                    await conn.OpenAsync();
                     await cmd.ExecuteNonQueryAsync();
                 }
             }
@@ -76,12 +74,11 @@ namespace refactor_this.Models
         {
             using (var conn = _database.GetConnection())
             {
-                using (var cmd = conn.SqlConnection.CreateCommand())
+                using (var cmd = new SqlCommand("SELECT * FROM product WHERE id = @Id", conn))
                 {
-                    cmd.CommandText = "SELECT * FROM product WHERE id = @Id";
                     cmd.Parameters.AddWithValue("@Id", id);
 
-                    await conn.Open();
+                    await conn.OpenAsync();
                     using (var rdr = await cmd.ExecuteReaderAsync())
                     {
                         if (!await rdr.ReadAsync())
@@ -96,18 +93,23 @@ namespace refactor_this.Models
         public async Task<IReadOnlyList<Product>> GetAllAsync(string name)
         {
             var products = new List<Product>();
+
             using (var conn = _database.GetConnection())
             {
-                using (var cmd = conn.SqlConnection.CreateCommand())
+                var query = "SELECT * FROM product";
+                if (!string.IsNullOrEmpty(name))
                 {
-                    cmd.CommandText = "SELECT * FROM product";
+                    query += " WHERE LOWER(name) LIKE @Name";
+                }
+
+                using (var cmd = new SqlCommand(query, conn))
+                {
                     if (!string.IsNullOrEmpty(name))
                     {
-                        cmd.CommandText += " WHERE LOWER(name) LIKE @Name";
                         cmd.Parameters.AddWithValue("@Name", $"%{name.ToLower()}%");
                     }
 
-                    await conn.Open();
+                    await conn.OpenAsync();
                     using (var rdr = await cmd.ExecuteReaderAsync())
                     {
                         while (await rdr.ReadAsync())

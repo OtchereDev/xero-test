@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
 
 namespace refactor_this.Models
 {
-    public class ProductOptionRepository: IProductOptionRepository
+    public class ProductOptionRepository : IProductOptionRepository
     {
         private readonly IDatabase _database;
 
@@ -16,121 +17,137 @@ namespace refactor_this.Models
 
         public async Task SaveAsync(ProductOption productOption)
         {
-            var conn = _database.GetConnection();
-            await conn.Open();
-
-            var query =
-                "INSERT INTO productoption (id, productid, name, description) VALUES (@Id, @ProductId, @Name, @Description)";
-
-            using (var cmd = new SqlCommand(query, conn.SqlConnection))
+            using (var conn = _database.GetConnection())
             {
-                cmd.Parameters.AddWithValue("@Id", productOption.Id);
-                cmd.Parameters.AddWithValue("@ProductId", productOption.ProductId);
-                cmd.Parameters.AddWithValue("@Name", productOption.Name);
-                cmd.Parameters.AddWithValue("@Description", productOption.Description ?? (object)DBNull.Value);
+                const string query =
+                    "INSERT INTO productoption (id, productid, name, description) VALUES (@Id, @ProductId, @Name, @Description)";
+                using (var cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@Id", productOption.Id);
+                    cmd.Parameters.AddWithValue("@ProductId", productOption.ProductId);
+                    cmd.Parameters.AddWithValue("@Name", productOption.Name);
+                    cmd.Parameters.AddWithValue("@Description", productOption.Description ?? (object)DBNull.Value);
 
-                await cmd.ExecuteNonQueryAsync();
+                    await conn.OpenAsync();
+                    await cmd.ExecuteNonQueryAsync();
+                }
             }
         }
-        
+
         public async Task UpdateAsync(ProductOption productOption)
         {
-            var conn = _database.GetConnection();
-            await conn.Open();
-
-            var query = "UPDATE productoption SET name = @Name, description = @Description WHERE id = @Id";
-
-            using (var cmd = new SqlCommand(query, conn.SqlConnection))
+            using (var conn = _database.GetConnection())
             {
-                cmd.Parameters.AddWithValue("@Id", productOption.Id);
-                cmd.Parameters.AddWithValue("@ProductId", productOption.ProductId);
-                cmd.Parameters.AddWithValue("@Name", productOption.Name);
-                cmd.Parameters.AddWithValue("@Description", productOption.Description ?? (object)DBNull.Value);
+                const string query = "UPDATE productoption SET name = @Name, description = @Description WHERE id = @Id";
 
-                await cmd.ExecuteNonQueryAsync();
+                using (var cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@Id", productOption.Id);
+                    cmd.Parameters.AddWithValue("@Name", productOption.Name);
+                    cmd.Parameters.AddWithValue("@Description", productOption.Description ?? (object)DBNull.Value);
+
+                    await conn.OpenAsync();
+                    await cmd.ExecuteNonQueryAsync();
+                }
             }
         }
 
         public async Task<ProductOption> GetByIdAsync(Guid id)
         {
-            var conn = _database.GetConnection();
-            await conn.Open();
-
-            using (var cmd = conn.CreateCommand())
+            using (var conn = _database.GetConnection())
             {
-                cmd.CommandText = "SELECT * FROM productoption WHERE id = @Id";
-                cmd.Parameters.Add(new SqlParameter("@Id", id));
+                const string query = "SELECT * FROM productoption WHERE id = @Id";
 
-                using (var rdr =  cmd.ExecuteReader())
+                using (var cmd = new SqlCommand(query, conn))
                 {
-                    if (! rdr.Read())
-                        return null;
+                    cmd.Parameters.AddWithValue("@Id", id);
 
-                    return new ProductOption
+                    await conn.OpenAsync();
+                    using (var rdr = await cmd.ExecuteReaderAsync())
                     {
-                        Id = Guid.Parse(rdr["Id"].ToString()),
-                        ProductId = Guid.Parse(rdr["ProductId"].ToString()),
-                        Name = rdr["Name"].ToString(),
-                        Description = rdr["Description"] == DBNull.Value ? null : rdr["Description"].ToString()
-                    };
+                        if (!await rdr.ReadAsync())
+                            return null;
+
+                        return MapProductOption(rdr);
+                    }
                 }
             }
         }
 
         public async Task DeleteAsync(ProductOption productOption)
         {
-            var conn = _database.GetConnection();
-            await conn.Open();
-
-            using (var cmd = new SqlCommand("DELETE FROM productoption WHERE id = @Id", conn.SqlConnection))
+            using (var conn = _database.GetConnection())
             {
-                cmd.Parameters.AddWithValue("@Id", productOption.Id);
-                await cmd.ExecuteNonQueryAsync();
+                const string query = "DELETE FROM productoption WHERE id = @Id";
+
+                using (var cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@Id", productOption.Id);
+
+                    await conn.OpenAsync();
+                    await cmd.ExecuteNonQueryAsync();
+                }
             }
         }
 
         public async Task DeleteByProductIdAsync(Guid productId)
         {
-            var conn = _database.GetConnection();
-            await conn.Open();
-
-            using (var cmd = new SqlCommand("DELETE FROM productoption WHERE productid = @Id", conn.SqlConnection))
+            using (var conn = _database.GetConnection())
             {
-                cmd.Parameters.AddWithValue("@Id", productId);
-                await cmd.ExecuteNonQueryAsync();
+                const string query = "DELETE FROM productoption WHERE productid = @Id";
+
+                using (var cmd = new SqlCommand(query, conn))
+                {
+                    cmd.Parameters.AddWithValue("@Id", productId);
+
+                    await conn.OpenAsync();
+                    await cmd.ExecuteNonQueryAsync();
+                }
             }
         }
 
         public async Task<IReadOnlyList<ProductOption>> GetAllAsync(string productId)
         {
             var items = new List<ProductOption>();
-            var conn = _database.GetConnection();
-            await conn.Open();
 
-            var query = "SELECT id FROM productoption";
-            if (!string.IsNullOrEmpty(productId))
+            using (var conn = _database.GetConnection())
             {
-                query += " WHERE productid = @ProductId";
-            }
-
-            using (var cmd = new SqlCommand(query, conn.SqlConnection))
-            {
+                var query = "SELECT * FROM productoption";
                 if (!string.IsNullOrEmpty(productId))
                 {
-                    cmd.Parameters.AddWithValue("@ProductId", productId);
+                    query += " WHERE productid = @ProductId";
                 }
 
-                using (var rdr = await cmd.ExecuteReaderAsync())
+                using (var cmd = new SqlCommand(query, conn))
                 {
-                    while (await rdr.ReadAsync())
+                    if (!string.IsNullOrEmpty(productId))
                     {
-                        var id = Guid.Parse(rdr["id"].ToString());
-                        items.Add(await GetByIdAsync(id)); // Async call to fetch full details.
+                        cmd.Parameters.AddWithValue("@ProductId", productId);
+                    }
+
+                    await conn.OpenAsync();
+                    using (var rdr = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await rdr.ReadAsync())
+                        {
+                            items.Add(MapProductOption(rdr));
+                        }
                     }
                 }
             }
 
             return items.AsReadOnly();
+        }
+
+        private ProductOption MapProductOption(IDataRecord record)
+        {
+            return new ProductOption
+            {
+                Id = Guid.Parse(record["id"].ToString()),
+                ProductId = Guid.Parse(record["productid"].ToString()),
+                Name = record["name"].ToString(),
+                Description = record["description"] == DBNull.Value ? null : record["description"].ToString()
+            };
         }
     }
 }
